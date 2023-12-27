@@ -1,7 +1,13 @@
-import { downloadCropAndSaveImage } from "../helpers/utils";
+import { downloadCropAndSaveImage } from "../utils";
 
 downloadCropAndSaveImage(
-  "https://africancarnivore.wildbook.org/wildbook_data_dir/7/6/76a054e0-ab25-41d0-ad6b-b8c7836e24a2/I__00642.JPG",
-  [386, 930, 328, 495],
+  "https://africancarnivore.wildbook.org/wildbook_data_dir/3/0/309d8622-daef-4ee7-93e4-628141a988b9/T4C20230923BenSeager1622765ff96b544318d88f41dc0383aea.jpg",
+  [4, 0, 679, 1024],
   "/tmp/xyz.jpg",
+);
+
+downloadCropAndSaveImage(
+  "https://africancarnivore.wildbook.org/wildbook_data_dir/3/0/309d8622-daef-4ee7-93e4-628141a988b9/T4C20230923BenSeager1622765ff96b544318d88f41dc0383aea.jpg",
+  [68, 63, 586, 566],
+  "/tmp/xyz2.jpg",
 );

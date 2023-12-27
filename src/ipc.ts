@@ -1,7 +1,7 @@
-import { dialog, ipcMain } from "electron";
-import { default_on_error } from "../helpers/ipc";
+import { app, dialog, ipcMain } from "electron";
 
-import { mainWindow } from "../index";
+import { mainWindow } from "./index";
+import { saveXyz } from "./utils";
 import FileFilter = Electron.FileFilter;
 
 ipcMain.on("file-dialog-open", (event, filters: FileFilter[], defaultPath: string) => {
@@ -15,8 +15,7 @@ ipcMain.on("file-dialog-open", (event, filters: FileFilter[], defaultPath: strin
       if (!result.canceled && result.filePaths.length > 0) {
         event.sender.send("file-dialog-close", result.filePaths[0]);
       }
-    })
-    .catch(default_on_error);
+    });
 });
 
 ipcMain.on("directory-dialog-open", (event, defaultPath: string) => {
@@ -29,6 +28,13 @@ ipcMain.on("directory-dialog-open", (event, defaultPath: string) => {
       if (!result.canceled && result.filePaths.length > 0) {
         event.sender.send("directory-dialog-close", result.filePaths[0]);
       }
-    })
-    .catch(default_on_error);
+    });
+});
+
+ipcMain.on("handle-final-submit", async (event, submitData: SubmitData) => {
+  event.sender.send("final-submit-handle", await saveXyz(submitData));
+});
+
+ipcMain.on("get-downloads-directory", (event, onDone: (downloadsDirectory: string) => void) => {
+  event.sender.send("downloads-directory-get", app.getPath("downloads"));
 });

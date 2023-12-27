@@ -12,7 +12,7 @@ const Dashboard = () => {
   const [modalShow, setModalShow] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
   const [downloadsDirectory, setDownloadsDirectory] = useState("");
-  const [currentFormData, setCurrentFormData] = useState({
+  const [currentFormData, setCurrentFormData] = useState<SubmitData & { handleFinalSubmit: boolean }>({
     downloadRoot: "",
     inputXlsx: "",
     unidentifiedEncounters: false,
@@ -39,7 +39,15 @@ const Dashboard = () => {
   }, [currentFormData.handleFinalSubmit]);
 
   const handleFinalSubmit = (): void => {
-    alert(JSON.stringify(currentFormData));
+    setShowSpinner(true);
+    window.electron.handleFinalSubmit(currentFormData, (done: Done): void => {
+      if (done.success) {
+        toast.success(done.message);
+      } else {
+        toast.error(done.message);
+      }
+      setShowSpinner(false);
+    });
   };
 
   const openXlsxDialog = (): void => {
@@ -156,7 +164,8 @@ const Dashboard = () => {
                     }}
                     className={"mt-2"}
                   >
-                    Default is one each of viewpoints: left, right, front, back (unless export filters excluded viewpoints)
+                    Default is <u>one each</u> of viewpoints: left, right, front, back (unless export filters excluded
+                    viewpoints)
                     <ul className={"mt-1"}>
                       <li>If not available, next available similar viewpoint is selected (ex. leftfront, rightback)</li>
 
