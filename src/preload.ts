@@ -41,8 +41,4 @@ contextBridge.exposeInMainWorld("electron", {
       onDone(downloadsDirectory);
     });
   },
-
-  moveMouseToElement: (elementPosition: number[]) => {
-    ipcRenderer.send("move-mouse-to-element", elementPosition);
-  },
 });

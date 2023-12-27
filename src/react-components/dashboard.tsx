@@ -4,12 +4,10 @@ import FullScreenSpinner from "./full-screen-spinner";
 import { toast, ToastContainer } from "react-toastify";
 import { Button, Form, InputGroup, Modal } from "react-bootstrap";
 import * as Icon from "react-bootstrap-icons";
-import { MouseEvent } from "react";
 import * as path from "path";
-import { bool } from "sharp";
 
 const Dashboard = () => {
-  const defaultNumAnnotationsPerId: string = "4";
+  const defaultNumAnnotationsPerId = "4";
 
   const [modalShow, setModalShow] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
@@ -172,7 +170,6 @@ const Dashboard = () => {
 
                 <div className={"d-flex flex-row justify-content-center align-items-start mt-4"}>
                   <Form.Select
-                    id={"numAnnotationsPerId"}
                     style={{
                       width: "6rem",
                       position: "absolute",
@@ -284,10 +281,6 @@ const Dashboard = () => {
                   numAnnotationsPerId: defaultNumAnnotationsPerId,
                 };
               });
-
-              const element = document.getElementById("numAnnotationsPerId");
-              const rect = element.getBoundingClientRect();
-              window.electron.moveMouseToElement([rect.left, rect.top]);
             }}
           >
             GO BACK

@@ -49,7 +49,7 @@ const getWindow = () => {
   });
 
   window.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).then(noop);
-  // window.webContents.openDevTools({mode: 'undocked'});
+  window.webContents.openDevTools({mode: 'undocked'});
 
   return window;
 };
@@ -61,7 +61,6 @@ app.on("ready", () => {
 
   // register IPC actions
   require("./ipc/dialog");
-  require("./ipc/mouse");
   require("./ipc/settings");
 });
 
