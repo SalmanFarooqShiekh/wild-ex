@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Spinner } from "react-bootstrap";
 
-const FullScreenSpinner = ({ show }: {show: boolean}) => {
+const FullScreenSpinner = ({ show }: { show: boolean }) => {
   return (
     <div
       style={{

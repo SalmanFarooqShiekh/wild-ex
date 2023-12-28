@@ -5,7 +5,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("file-dialog-close", (event, selectedFile) => {
       onDone(selectedFile);
     });
-    ipcRenderer.send("file-dialog-open", [{ name: "Microsoft Excel File", extensions: ["xlsx", "xls"] }], defaultPath);
+    ipcRenderer.send(
+      "file-dialog-open",
+      [{ name: "Microsoft Excel File", extensions: ["xlsx", "xls"] }],
+      defaultPath,
+    );
   },
 
   openDirectoryDialog: (onDone: (selectedDirectory: string) => void, defaultPath: string) => {
@@ -42,10 +46,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.send("get-downloads-directory");
   },
 
-  handleFinalSubmit: (submitData: SubmitData, onDone: (done: Done) => void) => {
-    ipcRenderer.on("final-submit-handle", (event, done: Done) => {
-      onDone(done);
-    });
-    ipcRenderer.send("handle-final-submit", submitData);
-  },
+  handleFinalSubmit: (submitData: SubmitData) =>
+    ipcRenderer.invoke("handle-final-submit", submitData),
 });

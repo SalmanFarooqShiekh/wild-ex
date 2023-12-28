@@ -5,7 +5,6 @@ import icon from "./assets/icon.png";
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
-
 let mainWindow: BrowserWindow = undefined;
 
 if (require("electron-squirrel-startup")) {
@@ -46,10 +45,10 @@ const getWindow = () => {
 };
 
 app.on("ready", () => {
-  mainWindow = getWindow();
-
   // register IPC actions
   require("./ipc");
+
+  mainWindow = getWindow();
 });
 
 app.on("window-all-closed", () => {

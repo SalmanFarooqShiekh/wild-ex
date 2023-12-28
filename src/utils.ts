@@ -2,8 +2,15 @@ import sharp from "sharp";
 import XLSX from "xlsx";
 import * as fs from "fs";
 import * as path from "path";
+import _ from "lodash";
 
-const cropAndSaveImage = async (imageBuffer: ArrayBuffer, cropRectangle: number[], outputPath: string) => {
+const UNIDENTIFIED_ANNOTATIONS_FOLDER = "Unidentified_annotations";
+
+const cropAndSaveImage = async (
+  imageBuffer: ArrayBuffer,
+  cropRectangle: number[],
+  outputPath: string,
+) => {
   return await sharp(imageBuffer)
     .extract({
       left: cropRectangle[0],
@@ -25,7 +32,11 @@ const downloadImageToBuffer = async (imageUrl: string) => {
   return await response.arrayBuffer();
 };
 
-const downloadCropAndSaveImage = async (imageUrl: string, cropRectangle: number[], outputPath: string) => {
+const downloadCropAndSaveImage = async (
+  imageUrl: string,
+  cropRectangle: number[],
+  outputPath: string,
+) => {
   console.log({ imageUrl, cropRectangle, outputPath });
   const buffer = await downloadImageToBuffer(imageUrl);
   await cropAndSaveImage(buffer, cropRectangle, outputPath);
@@ -33,7 +44,7 @@ const downloadCropAndSaveImage = async (imageUrl: string, cropRectangle: number[
 
 const readExcelToJSON = (filePath: string): any[] => {
   const workbook: XLSX.WorkBook = XLSX.readFile(filePath);
-  return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+  return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
 };
 
 const shortlistAnnotations = (annotations: Annotation[], maxNum: string): Annotation[] => {
@@ -89,42 +100,50 @@ const shortlistAnnotations = (annotations: Annotation[], maxNum: string): Annota
   return maxNum === "all" ? annotations : annotations.slice(0, Number(maxNum));
 };
 
-const getRefinedDataFromExcel = (filePath: string, maxNumAnnotations: string): AnnotationsWithId[] => {
-  const unrefinedJSON = readExcelToJSON(filePath);
-
-  const refineOne = (obj: any): AnnotationsWithId => {
-    const annotations: Annotation[] = [];
-
-    for (let i = 0; i < 1000; i++) {
-      if (
-        Object.prototype.hasOwnProperty.call(obj, `Encounter.mediaAsset${i}`) &&
-        Object.prototype.hasOwnProperty.call(obj, `Encounter.mediaAsset${i}.filePath`) &&
-        Object.prototype.hasOwnProperty.call(obj, `Encounter.mediaAsset${i}.imageUrl`) &&
-        Object.prototype.hasOwnProperty.call(obj, `Annotation${i}.bbox`) &&
-        Object.prototype.hasOwnProperty.call(obj, `Annotation${i}.Viewoint`)
-      ) {
-        annotations.push({
-          fileName: obj[`Encounter.mediaAsset${i}`],
-          filePath: obj[`Encounter.mediaAsset${i}.filePath`],
-          imageUrl: obj[`Encounter.mediaAsset${i}.imageUrl`],
-          boundingBox: obj[`Annotation${i}.bbox`],
-          viewPoint: obj[`Annotation${i}.Viewoint`],
-        });
-      } else {
-        break;
-      }
-    }
-
-    return {
-      individualId: obj["Name0.value"],
-      annotations: shortlistAnnotations(annotations, maxNumAnnotations),
-    };
-  };
-
-  return unrefinedJSON.map(refineOne);
+const getRefinedDataFromExcel = ({
+  inputXlsx,
+  numAnnotationsPerId,
+  unidentifiedEncounters,
+}: {
+  inputXlsx: string;
+  numAnnotationsPerId: string;
+  unidentifiedEncounters: boolean;
+}): AnnotationsWithId[] => {
+  return Object.entries(
+    _.groupBy(
+      readExcelToJSON(inputXlsx).map((obj) => {
+        return obj["Name0.value"].trim() === ""
+          ? { ...obj, "Name0.value": UNIDENTIFIED_ANNOTATIONS_FOLDER }
+          : obj;
+      }),
+      "Name0.value",
+    ),
+  )
+    .filter(
+      ([individualId, groups]) =>
+        unidentifiedEncounters || individualId !== UNIDENTIFIED_ANNOTATIONS_FOLDER,
+    )
+    .map(([individualId, groups]): AnnotationsWithId => {
+      return {
+        individualId: individualId,
+        annotations: shortlistAnnotations(
+          groups.map((obj) => {
+            const i = 0;
+            return {
+              fileName: obj[`Encounter.mediaAsset${i}`],
+              filePath: obj[`Encounter.mediaAsset${i}.filePath`],
+              imageUrl: obj[`Encounter.mediaAsset${i}.imageUrl`],
+              boundingBox: obj[`Annotation${i}.bbox`],
+              viewPoint: obj[`Annotation${i}.Viewoint`],
+            };
+          }),
+          numAnnotationsPerId,
+        ),
+      };
+    });
 };
 
-const saveXyz = async (submitData: SubmitData): Promise<Done> => {
+const performFinalSave = async (submitData: SubmitData): Promise<Done> => {
   const wrappingFolder = path.join(submitData.downloadRoot, path.basename(submitData.inputXlsx));
   try {
     fs.mkdirSync(wrappingFolder, { recursive: true });
@@ -132,7 +151,7 @@ const saveXyz = async (submitData: SubmitData): Promise<Done> => {
     return { success: false, message: `Folder exists: ${wrappingFolder}` };
   }
 
-  for (const annotationsWithId of getRefinedDataFromExcel(submitData.inputXlsx, submitData.numAnnotationsPerId)) {
+  for (const annotationsWithId of getRefinedDataFromExcel(submitData)) {
     const individualIdFolder = path.join(wrappingFolder, annotationsWithId.individualId);
     try {
       fs.mkdirSync(individualIdFolder, { recursive: true });
@@ -148,7 +167,7 @@ const saveXyz = async (submitData: SubmitData): Promise<Done> => {
           path.join(individualIdFolder, `${annotation.viewPoint}-${annotation.fileName}`),
         );
       } catch (error) {
-        return { success: false, message: `An error occurred: ${error.message}` };
+        // return { success: false, message: `An error occurred: ${error.message}` };
       }
     }
   }
@@ -156,4 +175,4 @@ const saveXyz = async (submitData: SubmitData): Promise<Done> => {
   return { success: true, message: "All annotations downloaded successfully" };
 };
 
-export { downloadCropAndSaveImage, readExcelToJSON, getRefinedDataFromExcel, saveXyz };
+export { downloadCropAndSaveImage, readExcelToJSON, getRefinedDataFromExcel, performFinalSave };

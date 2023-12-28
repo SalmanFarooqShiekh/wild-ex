@@ -1,8 +1,10 @@
 import { app, dialog, ipcMain } from "electron";
 
 import { mainWindow } from "./index";
-import { saveXyz } from "./utils";
+import { performFinalSave } from "./utils";
 import FileFilter = Electron.FileFilter;
+import { Simulate } from "react-dom/test-utils";
+import submit = Simulate.submit;
 
 ipcMain.on("file-dialog-open", (event, filters: FileFilter[], defaultPath: string) => {
   dialog
@@ -31,9 +33,10 @@ ipcMain.on("directory-dialog-open", (event, defaultPath: string) => {
     });
 });
 
-ipcMain.on("handle-final-submit", async (event, submitData: SubmitData) => {
-  event.sender.send("final-submit-handle", await saveXyz(submitData));
-});
+ipcMain.handle(
+  "handle-final-submit",
+  async (event, submitData: SubmitData) => await performFinalSave(submitData),
+);
 
 ipcMain.on("get-downloads-directory", (event, onDone: (downloadsDirectory: string) => void) => {
   event.sender.send("downloads-directory-get", app.getPath("downloads"));

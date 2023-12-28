@@ -12,7 +12,9 @@ const Dashboard = () => {
   const [modalShow, setModalShow] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
   const [downloadsDirectory, setDownloadsDirectory] = useState("");
-  const [currentFormData, setCurrentFormData] = useState<SubmitData & { handleFinalSubmit: boolean }>({
+  const [currentFormData, setCurrentFormData] = useState<
+    SubmitData & { handleFinalSubmit: boolean }
+  >({
     downloadRoot: "",
     inputXlsx: "",
     unidentifiedEncounters: false,
@@ -38,16 +40,25 @@ const Dashboard = () => {
     }
   }, [currentFormData.handleFinalSubmit]);
 
-  const handleFinalSubmit = (): void => {
+  const handleFinalSubmit = async () => {
     setShowSpinner(true);
-    window.electron.handleFinalSubmit(currentFormData, (done: Done): void => {
-      if (done.success) {
-        toast.success(done.message);
-      } else {
-        toast.error(done.message);
-      }
-      setShowSpinner(false);
+
+    setCurrentFormData((previous) => {
+      return {
+        ...previous,
+        handleFinalSubmit: false,
+      };
     });
+
+    const done: Done = await window.electron.handleFinalSubmit(currentFormData);
+
+    if (done.success) {
+      toast.success(done.message);
+    } else {
+      toast.error(done.message);
+    }
+
+    setShowSpinner(false);
   };
 
   const openXlsxDialog = (): void => {
@@ -112,7 +123,9 @@ const Dashboard = () => {
 
           <Form spellCheck={false}>
             <ol className={"main-list"}>
-              <li>Generate & save Encounter Annotations Export file from Wildbook Encounter Search</li>
+              <li>
+                Generate & save Encounter Annotations Export file from Wildbook Encounter Search
+              </li>
 
               <li>
                 <div>Select Annotation export file:</div>
@@ -164,14 +177,17 @@ const Dashboard = () => {
                     }}
                     className={"mt-2"}
                   >
-                    Default is <u>one each</u> of viewpoints: left, right, front, back (unless export filters excluded
-                    viewpoints)
+                    Default is <u>one each</u> of viewpoints: left, right, front, back (unless
+                    export filters excluded viewpoints)
                     <ul className={"mt-1"}>
-                      <li>If not available, next available similar viewpoint is selected (ex. leftfront, rightback)</li>
+                      <li>
+                        If not available, next available similar viewpoint is selected (ex.
+                        leftfront, rightback)
+                      </li>
 
                       <li>
-                        If 2 annotations per individual is selected, 1 left & 1 right will be exported per individual ID,
-                        where available
+                        If 2 annotations per individual is selected, 1 left & 1 right will be
+                        exported per individual ID, where available
                       </li>
                     </ul>
                   </div>
@@ -199,7 +215,10 @@ const Dashboard = () => {
                     }}
                   >
                     {["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "All"].map((i) => (
-                      <option value={i.toLowerCase()} selected={currentFormData.numAnnotationsPerId === i.toLowerCase()}>
+                      <option
+                        value={i.toLowerCase()}
+                        selected={currentFormData.numAnnotationsPerId === i.toLowerCase()}
+                      >
                         {i}
                       </option>
                     ))}
@@ -209,8 +228,9 @@ const Dashboard = () => {
                     <div style={{ width: "20rem", transform: "translate(4rem)" }}>
                       <h5 className={"text-danger fw-semibold mb-0"}>Warning</h5>
                       <div className={"text-danger"}>
-                        Consider your internet connection as well as the number of encounters and annotations in the source
-                        Export file before selecting the number of images per individual in download
+                        Consider your internet connection as well as the number of encounters and
+                        annotations in the source Export file before selecting the number of images
+                        per individual in download
                       </div>
                     </div>
 
@@ -253,8 +273,8 @@ const Dashboard = () => {
         </Modal.Header>
         <Modal.Body className={"modal-body"}>
           <div>
-            You have selected "All" to download <b>ALL</b> annotations for <b>ALL</b> encounters in the Encounter Annotations
-            Export file selected.
+            You have selected "All" to download <b>ALL</b> annotations for <b>ALL</b> encounters in
+            the Encounter Annotations Export file selected.
           </div>
 
           <div>
@@ -262,12 +282,14 @@ const Dashboard = () => {
           </div>
 
           <div>
-            It could also use <b>MORE</b> storage space than is available on the drive you are downloading to.
+            It could also use <b>MORE</b> storage space than is available on the drive you are
+            downloading to.
           </div>
 
           <div>
-            To <b>REDUCE</b> the size of your image download, create a smaller export file from Wildbook, using filters to
-            narrow your search results. Or, click "Go Back" below to select a lower number of annotations for download.
+            To <b>REDUCE</b> the size of your image download, create a smaller export file from
+            Wildbook, using filters to narrow your search results. Or, click "Go Back" below to
+            select a lower number of annotations for download.
           </div>
         </Modal.Body>
         <Modal.Footer>
@@ -302,7 +324,7 @@ const Dashboard = () => {
       <ToastContainer
         position={"top-right"}
         autoClose={5000}
-        limit={3}
+        limit={6}
         hideProgressBar={false}
         newestOnTop={false}
         closeOnClick={true}
