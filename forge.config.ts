@@ -26,14 +26,14 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     // new MakerSquirrel({}),
-    new MakerDMG({ name: "WildEx", icon: icon_path, overwrite: true }),
+    // new MakerDMG({ name: "WildEx", icon: icon_path, overwrite: true }),
     new MakerZIP({}),
   ],
   plugins: [
-    {
-      name: '@electron-forge/plugin-auto-unpack-natives',
-      config: {},
-    },
+    // {
+    //   name: '@electron-forge/plugin-auto-unpack-natives',
+    //   config: {},
+    // },
     new WebpackPlugin({
       mainConfig,
       renderer: {
