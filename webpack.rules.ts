@@ -19,17 +19,6 @@ export const rules: Required<ModuleOptions>["rules"] = [
     },
   },
   {
-    test: /[/\\]node_modules[/\\]sharp[/\\]vendor[/\\].+\.so\.42$/,
-    type: "asset",
-    // parser: { amd: false },
-    use: {
-      loader: "@vercel/webpack-asset-relocator-loader",
-      options: {
-        outputAssetBase: "native_modules",
-      },
-    },
-  },
-  {
     test: /\.tsx?$/,
     exclude: /(node_modules|\.webpack)/,
     use: {
