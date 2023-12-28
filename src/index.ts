@@ -20,9 +20,9 @@ const getWindow = () => {
     width: 900,
     minWidth: 900,
     maxWidth: 900,
-    height: 900,
-    minHeight: 900,
-    maxHeight: 900,
+    height: 950,
+    minHeight: 950,
+    maxHeight: 950,
     autoHideMenuBar: true,
     icon: nativeImage.createFromDataURL(icon),
     webPreferences: {
