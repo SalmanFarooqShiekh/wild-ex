@@ -144,27 +144,29 @@ const Dashboard = () => {
               </li>
 
               <li>
-                <div>Include unidentified encounters in export? (Default is No)</div>
+                <div className={"d-flex align-items-center"}>
+                  <div>Include unidentified encounters in export? (Default is No)</div>
 
-                <div key={"inline-radio"} className="mt-1">
-                  <Form.Check
-                    inline
-                    label="No"
-                    value={"no"}
-                    name="unidentifiedEncounters"
-                    type={"radio"}
-                    checked={!currentFormData.unidentifiedEncounters}
-                    onChange={unidentifiedEncountersOnChange}
-                  />
-                  <Form.Check
-                    inline
-                    label="Yes"
-                    value={"yes"}
-                    name="unidentifiedEncounters"
-                    type={"radio"}
-                    checked={currentFormData.unidentifiedEncounters}
-                    onChange={unidentifiedEncountersOnChange}
-                  />
+                  <div key={"inline-radio"} className="ms-4 mt-1">
+                    <Form.Check
+                      inline
+                      label="No"
+                      value={"no"}
+                      name="unidentifiedEncounters"
+                      type={"radio"}
+                      checked={!currentFormData.unidentifiedEncounters}
+                      onChange={unidentifiedEncountersOnChange}
+                    />
+                    <Form.Check
+                      inline
+                      label="Yes"
+                      value={"yes"}
+                      name="unidentifiedEncounters"
+                      type={"radio"}
+                      checked={currentFormData.unidentifiedEncounters}
+                      onChange={unidentifiedEncountersOnChange}
+                    />
+                  </div>
                 </div>
               </li>
 
@@ -198,7 +200,7 @@ const Dashboard = () => {
                     style={{
                       width: "6rem",
                       position: "absolute",
-                      left: "12rem",
+                      left: "10rem",
                     }}
                     className={"me-4"}
                     onChange={(e) => {
