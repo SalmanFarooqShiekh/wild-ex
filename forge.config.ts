@@ -19,7 +19,10 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
+    new MakerSquirrel({
+      iconUrl:
+        "https://raw.githubusercontent.com/SalmanFarooqShiekh/wild-ex/main/src/assets/icon.png",
+    }),
     new MakerDMG({ name: "WildEx", icon: icon_path, overwrite: true }),
     new MakerZIP({}),
   ],
