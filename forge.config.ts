@@ -25,7 +25,7 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
+    // new MakerSquirrel({}),
     new MakerDMG({ name: "WildEx", icon: icon_path, overwrite: true }),
     new MakerZIP({}),
   ],
