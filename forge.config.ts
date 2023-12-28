@@ -10,7 +10,8 @@ import { mainConfig } from "./webpack.main.config";
 import { rendererConfig } from "./webpack.renderer.config";
 import { join } from "path";
 
-const icon_path = join(__dirname, "/src/assets/icon.png");
+const icon_path = join(__dirname, "src", "assets", "icon.png");
+const icon_path_ico = join(__dirname, "src", "assets", "icon.ico");
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -21,7 +22,10 @@ const config: ForgeConfig = {
   makers: [
     new MakerSquirrel({
       iconUrl:
-        "https://raw.githubusercontent.com/SalmanFarooqShiekh/wild-ex/main/src/assets/icon.png",
+        "https://raw.githubusercontent.com/SalmanFarooqShiekh/wild-ex/main/src/assets/icon.ico",
+      setupIcon: icon_path_ico,
+      skipUpdateIcon: true,
+      noMsi: false,
     }),
     new MakerDMG({ name: "WildEx", icon: icon_path, overwrite: true }),
     new MakerZIP({}),
