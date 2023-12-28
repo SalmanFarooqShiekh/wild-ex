@@ -17,12 +17,12 @@ const getWindow = () => {
   }
 
   const window = new BrowserWindow({
-    width: 900,
-    minWidth: 900,
-    maxWidth: 900,
-    height: 950,
-    minHeight: 950,
-    maxHeight: 950,
+    width: 750,
+    minWidth: 750,
+    maxWidth: 750,
+    height: 750,
+    minHeight: 750,
+    maxHeight: 750,
     autoHideMenuBar: true,
     icon: nativeImage.createFromDataURL(icon),
     webPreferences: {
@@ -31,7 +31,7 @@ const getWindow = () => {
   });
 
   window.once("ready-to-show", () => {
-    window.webContents.setZoomFactor(1.1);
+    window.webContents.setZoomFactor(1.0);
   });
 
   window.on("closed", function () {

@@ -237,10 +237,10 @@ const Dashboard = () => {
                     <Button
                       variant={"primary"}
                       style={{
-                        fontSize: "1.5rem",
+                        fontSize: "1.4rem",
                         width: "12rem",
                       }}
-                      className={"mt-5"}
+                      className={"mt-4"}
                       onClick={() => {
                         if (currentFormData.numAnnotationsPerId === "all") {
                           setModalShow(true);
