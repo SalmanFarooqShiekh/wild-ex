@@ -21,7 +21,7 @@ export const mainConfig: Configuration = {
   resolve: {
     extensions: [".js", ".ts", ".jsx", ".tsx", ".css", ".json"],
   },
-  externals: {
-    'sharp': 'commonjs sharp'
-  },
+  // externals: {
+  //   'sharp': 'commonjs sharp'
+  // },
 };

@@ -15,6 +15,11 @@ const icon_path = join(__dirname, "/src/assets/icon.png");
 
 const config: ForgeConfig = {
   packagerConfig: {
+    // asar: {
+    //   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //   // @ts-ignore
+    //   unpack: [ "**/node_modules/sharp/**/*", "**/node_modules/@img/**/*" ]
+    // },
     asar: true,
     icon: icon_path,
   },
@@ -22,13 +27,11 @@ const config: ForgeConfig = {
   makers: [
     new MakerSquirrel({}),
     new MakerDMG({ name: "WildEx", icon: icon_path, overwrite: true }),
-    // new MakerRpm({}),
-    // new MakerDeb({}),
     new MakerZIP({}),
   ],
   plugins: [
     {
-      name: "@electron-forge/plugin-auto-unpack-natives",
+      name: '@electron-forge/plugin-auto-unpack-natives',
       config: {},
     },
     new WebpackPlugin({
@@ -47,6 +50,10 @@ const config: ForgeConfig = {
         ],
       },
     }),
+    // {
+    //   name: '@electron-forge/plugin-auto-unpack-natives',
+    //   config: {}
+    // },
   ],
 };
 
