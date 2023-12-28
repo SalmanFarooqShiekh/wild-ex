@@ -20,7 +20,7 @@ const config: ForgeConfig = {
     //   // @ts-ignore
     //   unpack: [ "**/node_modules/sharp/**/*", "**/node_modules/@img/**/*" ]
     // },
-    asar: true,
+    asar: false,
     icon: icon_path,
   },
   rebuildConfig: {},
