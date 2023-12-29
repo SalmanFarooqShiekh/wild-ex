@@ -47,7 +47,7 @@ const readExcelToJSON = (filePath: string): any[] => {
   return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
 };
 
-const shortlistAnnotations = (annotations: Annotation[], maxNum: string): Annotation[] => {
+const shortlistAnnotations = (annotationRows: AnnotationRow[], maxNum: string): AnnotationRow[] => {
   /*
    * To be shortlisted based on the following criteria:
    *   -> value of maxNum
@@ -97,10 +97,10 @@ const shortlistAnnotations = (annotations: Annotation[], maxNum: string): Annota
    */
 
   // TODO: implement above logic instead of the following:
-  return maxNum === "all" ? annotations : annotations.slice(0, Number(maxNum));
+  return maxNum === "all" ? annotationRows : annotationRows.slice(0, Number(maxNum));
 };
 
-const getRefinedDataFromExcel = ({
+const getGroupedAnnotationsFromExcel = ({
   inputXlsx,
   numAnnotationsPerId,
   unidentifiedEncounters,
@@ -109,36 +109,23 @@ const getRefinedDataFromExcel = ({
   numAnnotationsPerId: string;
   unidentifiedEncounters: boolean;
 }): AnnotationsWithId[] => {
-  return Object.entries(
-    _.groupBy(
-      readExcelToJSON(inputXlsx).map((obj) => {
-        return obj["Name0.value"].trim() === ""
-          ? { ...obj, "Name0.value": UNIDENTIFIED_ANNOTATIONS_FOLDER }
-          : obj;
-      }),
-      "Name0.value",
-    ),
-  )
+  const ungroupedJSON = readExcelToJSON(inputXlsx).map((obj) => {
+    return obj["Name0.value"].trim() === ""
+      ? { ...obj, "Name0.value": UNIDENTIFIED_ANNOTATIONS_FOLDER }
+      : obj;
+  });
+
+  // TODO: validate at runtime that ungroupedJSON is really of type AnnotationRow[], maybe using something like https://github.com/gcanti/io-ts
+
+  return Object.entries(_.groupBy(ungroupedJSON, "Name0.value"))
     .filter(
       ([individualId, groups]) =>
         unidentifiedEncounters || individualId !== UNIDENTIFIED_ANNOTATIONS_FOLDER,
     )
     .map(([individualId, groups]): AnnotationsWithId => {
       return {
-        individualId: individualId,
-        annotations: shortlistAnnotations(
-          groups.map((obj) => {
-            const i = 0;
-            return {
-              fileName: obj[`Encounter.mediaAsset${i}`],
-              filePath: obj[`Encounter.mediaAsset${i}.filePath`],
-              imageUrl: obj[`Encounter.mediaAsset${i}.imageUrl`],
-              boundingBox: obj[`Annotation${i}.bbox`],
-              viewPoint: obj[`Annotation${i}.Viewoint`],
-            };
-          }),
-          numAnnotationsPerId,
-        ),
+        "Name0.value": individualId,
+        annotationRows: shortlistAnnotations(groups, numAnnotationsPerId),
       };
     });
 };
@@ -148,31 +135,84 @@ const performFinalSave = async (submitData: SubmitData): Promise<Done> => {
   try {
     fs.mkdirSync(wrappingFolder, { recursive: true });
   } catch (error) {
-    return { success: false, message: `Folder exists: ${wrappingFolder}` };
+    return { success: false, message: `Couldn't create folder: ${wrappingFolder}.` };
   }
 
-  for (const annotationsWithId of getRefinedDataFromExcel(submitData)) {
-    const individualIdFolder = path.join(wrappingFolder, annotationsWithId.individualId);
+  let annotationsWithIds: AnnotationsWithId[];
+  try {
+    annotationsWithIds = getGroupedAnnotationsFromExcel(submitData);
+  } catch (error) {
+    return { success: false, message: `Malformed excel file: ${submitData.inputXlsx}.` };
+  }
+
+  const errors: { [key: string]: AnnotationsWithId } = {}; // should be an array really but object property lookups are faster/more convenient than linear search
+  for (const annotationsWithId of annotationsWithIds) {
+    const individualIdFolder = path.join(wrappingFolder, annotationsWithId["Name0.value"]);
     try {
       fs.mkdirSync(individualIdFolder, { recursive: true });
     } catch (error) {
-      return { success: false, message: `Folder exists: ${individualIdFolder}` };
+      errors[annotationsWithId["Name0.value"]] = {
+        "Name0.value": annotationsWithId["Name0.value"],
+        annotationRows: annotationsWithId["annotationRows"].map((annotationRow) => {
+          return {
+            ...annotationRow,
+            wildExErrorMessage: `Couldn't create folder: ${individualIdFolder}.`,
+          };
+        }),
+      };
+      continue;
     }
 
-    for (const annotation of annotationsWithId.annotations) {
+    for (const annotationRow of annotationsWithId.annotationRows) {
       try {
         await downloadCropAndSaveImage(
-          annotation.imageUrl,
-          annotation.boundingBox.match(/\d+/g).map(Number),
-          path.join(individualIdFolder, `${annotation.viewPoint}-${annotation.fileName}`),
+          annotationRow["Encounter.mediaAsset0.imageUrl"],
+          annotationRow["Annotation0.bbox"].match(/\d+/g).map(Number),
+          path.join(
+            individualIdFolder,
+            `${annotationRow["Annotation0.Viewoint"]} - ${annotationRow["Encounter.mediaAsset0"]}`,
+          ),
         );
       } catch (error) {
-        // return { success: false, message: `An error occurred: ${error.message}` };
+        const errorAnnotationRow: AnnotationRow = {
+          ...annotationRow,
+          wildExErrorMessage: error.message,
+        };
+        if (_.has(errors, annotationsWithId["Name0.value"])) {
+          errors[annotationsWithId["Name0.value"]].annotationRows.push(errorAnnotationRow);
+        } else {
+          errors[annotationsWithId["Name0.value"]] = {
+            "Name0.value": annotationsWithId["Name0.value"],
+            annotationRows: [errorAnnotationRow],
+          };
+        }
       }
     }
   }
 
-  return { success: true, message: "All annotations downloaded successfully" };
+  const errorsExcelJSON: AnnotationRow[] = _.flatMap(Object.values(errors), "annotationRows");
+
+  const errorsExcelFilePath = path.join(wrappingFolder, path.basename(submitData.inputXlsx));
+  fs.existsSync(errorsExcelFilePath) && fs.unlinkSync(errorsExcelFilePath); // delete the file if it already exists
+
+  if (errorsExcelJSON.length) {
+    const worksheet = XLSX.utils.json_to_sheet(errorsExcelJSON);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Search Results");
+    XLSX.writeFile(workbook, errorsExcelFilePath, { compression: true });
+
+    return {
+      success: false,
+      message: `${errorsExcelJSON.length} annotations couldn't be downloaded, retry with fixed ${errorsExcelFilePath} to resume.`,
+    };
+  } else {
+    return { success: true, message: "All annotations downloaded successfully." };
+  }
 };
 
-export { downloadCropAndSaveImage, readExcelToJSON, getRefinedDataFromExcel, performFinalSave };
+export {
+  downloadCropAndSaveImage,
+  readExcelToJSON,
+  getGroupedAnnotationsFromExcel,
+  performFinalSave,
+};

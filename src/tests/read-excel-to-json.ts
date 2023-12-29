@@ -1,9 +1,9 @@
-import { getRefinedDataFromExcel, readExcelToJSON } from "../utils";
+import { getGroupedAnnotationsFromExcel, readExcelToJSON } from "../utils";
 
 // console.log(readExcelToJSON("/home/salman/Downloads/xlsx/5.xlsx"));
 console.log(
   JSON.stringify(
-    getRefinedDataFromExcel({
+    getGroupedAnnotationsFromExcel({
       inputXlsx: "/home/salman/Downloads/xlsx/6.xlsx",
       numAnnotationsPerId: "4",
       unidentifiedEncounters: true,

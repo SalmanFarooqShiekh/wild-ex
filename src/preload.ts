@@ -19,20 +19,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.send("directory-dialog-open", defaultPath);
   },
 
-  getSettings: (onDone: (settingsReturned: WxSettings) => void) => {
-    ipcRenderer.on("settings-get", (event, settingsReturned: WxSettings) => {
-      onDone(settingsReturned);
-    });
-    ipcRenderer.send("get-settings");
-  },
-
-  setSettings: (wxSettings: WxSettings, onDone: (settingsReturned: WxSettings) => void) => {
-    ipcRenderer.on("settings-set", (event, settingsReturned: WxSettings) => {
-      onDone(settingsReturned);
-    });
-    ipcRenderer.send("set-settings", wxSettings);
-  },
-
   subscribeToErrors: (onError: (err: any) => void) => {
     ipcRenderer.on("on-error", (event, err: any) => {
       onError(err);

@@ -5,6 +5,7 @@ import { toast, ToastContainer } from "react-toastify";
 import { Button, Form, InputGroup, Modal } from "react-bootstrap";
 import * as Icon from "react-bootstrap-icons";
 import * as path from "path";
+import {size} from "lodash";
 
 const Dashboard = () => {
   const defaultNumAnnotationsPerId = "4";
@@ -88,7 +89,7 @@ const Dashboard = () => {
 
   const formDataValid = (): boolean => {
     if (!currentFormData.inputXlsx) {
-      toast.error("Excel file empty!");
+      toast.error("Excel file missing");
       return false;
     }
     // if (!currentFormData.field1.good) return false;
@@ -117,7 +118,7 @@ const Dashboard = () => {
             flexDirection: "column",
           }}
         >
-          <h1 className={"fw-bolder"}>WildEx</h1>
+          <h1 className={"fw-bolder mt-3"}>WildEx</h1>
 
           <p>Download Annotated Images from Wildbook</p>
 
@@ -271,7 +272,11 @@ const Dashboard = () => {
         keyboard={false}
       >
         <Modal.Header>
-          <Modal.Title>Warning</Modal.Title>
+          <Modal.Title className={"w-100"}>
+            <div className={"d-flex justify-content-center"}>
+              <div className={"fw-bold"}>WARNING!</div>
+            </div>
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body className={"modal-body"}>
           <div>
@@ -295,29 +300,39 @@ const Dashboard = () => {
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            variant="danger"
-            onClick={() => {
-              setModalShow(false);
-              openDirectoryDialog();
-            }}
-          >
-            Download ALL annotations
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setModalShow(false);
-              setCurrentFormData((previous) => {
-                return {
-                  ...previous,
-                  numAnnotationsPerId: defaultNumAnnotationsPerId,
-                };
-              });
-            }}
-          >
-            GO BACK
-          </Button>
+          <div className={"mx-4 d-flex w-100 justify-content-center justify-content-around"}>
+            <Button
+              style={{
+                width: "10rem",
+              }}
+              variant="danger"
+              onClick={() => {
+                setModalShow(false);
+                openDirectoryDialog();
+              }}
+            >
+              Download ALL annotations
+            </Button>
+
+            <Button
+              style={{
+                width: "10rem",
+              }}
+              className={"fs-5"}
+              variant="success"
+              onClick={() => {
+                setModalShow(false);
+                setCurrentFormData((previous) => {
+                  return {
+                    ...previous,
+                    numAnnotationsPerId: defaultNumAnnotationsPerId,
+                  };
+                });
+              }}
+            >
+              GO BACK
+            </Button>
+          </div>
         </Modal.Footer>
       </Modal>
 

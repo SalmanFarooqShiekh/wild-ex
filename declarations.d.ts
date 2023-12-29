@@ -1,22 +1,18 @@
 declare module "*.png";
 
-declare type WxSettings = {
-  abc: boolean;
-  xyz: boolean;
-  download_root: string;
-};
-
 declare type AnnotationsWithId = {
-  individualId: string | null;
-  annotations: Annotation[];
+  "Name0.value": string | null;
+  annotationRows: AnnotationRow[];
 };
 
-declare type Annotation = {
-  fileName: string;
-  filePath: string;
-  imageUrl: string;
-  boundingBox: string;
-  viewPoint: string;
+declare type AnnotationRow = {
+  "Encounter.mediaAsset0": string;
+  "Encounter.mediaAsset0.filePath": string;
+  "Encounter.mediaAsset0.imageUrl": string;
+  "Annotation0.bbox": string;
+  "Annotation0.Viewoint": string;
+  wildExErrorMessage?: string;
+  [key: string | number]: any; // for other columns in the Excel file
 };
 
 declare type SubmitData = {
@@ -24,9 +20,9 @@ declare type SubmitData = {
   inputXlsx: string;
   unidentifiedEncounters: boolean;
   numAnnotationsPerId: string;
-}
+};
 
 declare type Done = {
   success: boolean;
   message: string;
-}
+};
