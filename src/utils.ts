@@ -75,7 +75,8 @@ const shortlistAnnotations = (annotationRows: AnnotationRow[], maxNum: string): 
    *   if any not available, then respectively replace with a similar viewpoint of each
    *   if any still not available, then choose any other viewpoint(s) available to attempt to complete the total of 2
    *
-   * 3: left + right + front
+   * 3:
+   *   left + right + front
    *   if any not available, then respectively replace with a similar viewpoint of each
    *   if any still not available, then choose any other viewpoint(s) available to attempt to complete the total of 3
    *
