@@ -4,6 +4,9 @@ import * as fs from "fs";
 import * as path from "path";
 import _ from "lodash";
 
+import { Viewpoint } from "./constants";
+// import { AnnotationRow, AnnotationsWithId, Done, SubmitData } from "../declarations";
+
 const UNIDENTIFIED_ANNOTATIONS_FOLDER = "Unidentified_annotations";
 
 const cropAndSaveImage = async (
@@ -47,7 +50,10 @@ const readExcelToJSON = (filePath: string): any[] => {
   return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
 };
 
-const shortlistAnnotations = (annotationRows: AnnotationRow[], maxNum: string): AnnotationRow[] => {
+const shortlistAnnotations = (
+  inputAnnotationRows: AnnotationRow[],
+  maxNum: string,
+): AnnotationRow[] => {
   /*
    * To be shortlisted based on the following criteria:
    *   -> value of maxNum
@@ -97,8 +103,70 @@ const shortlistAnnotations = (annotationRows: AnnotationRow[], maxNum: string): 
    *   if any still not available, then choose any other viewpoint(s) available to attempt to complete the required total at random
    */
 
-  // TODO: implement above logic instead of the following:
-  return maxNum === "all" ? annotationRows : annotationRows.slice(0, Number(maxNum));
+  const maxNumInt = _.parseInt(maxNum);
+  if (maxNum === "all" || maxNumInt >= inputAnnotationRows.length) {
+    return inputAnnotationRows;
+  }
+
+  const pullAnnotationRow = (
+    match: "any" | "similar" | "exact",
+    viewpoint?: Viewpoint,
+  ): AnnotationRow | undefined => {
+    // mutates inputAnnotationRows
+
+    const indexToPull = _.findIndex(inputAnnotationRows, (annotationRow: AnnotationRow) => {
+      if (match === "any") return true;
+      if (match === "similar") return annotationRow["Annotation0.Viewoint"].includes(viewpoint);
+      if (match === "exact") return annotationRow["Annotation0.Viewoint"] === viewpoint;
+    });
+
+    if (indexToPull === -1) {
+      return undefined;
+    }
+
+    return _.first(_.pullAt(inputAnnotationRows, [indexToPull]));
+  };
+
+  const pullAnnotationRowPreference1Wise = (viewpoint1: Viewpoint, viewpoint2: Viewpoint) => {
+    return (
+      pullAnnotationRow("exact", viewpoint1) ||
+      pullAnnotationRow("exact", viewpoint2) ||
+      pullAnnotationRow("similar", viewpoint1) ||
+      pullAnnotationRow("similar", viewpoint2) ||
+      pullAnnotationRow("any")
+    );
+  };
+
+  const pullAnnotationRowPreference2Wise = (viewpoint: Viewpoint) => {
+    return (
+      pullAnnotationRow("exact", viewpoint) ||
+      pullAnnotationRow("similar", viewpoint) ||
+      pullAnnotationRow("any")
+    );
+  };
+
+  if (maxNumInt === 1) {
+    return [pullAnnotationRowPreference1Wise(Viewpoint.LEFT, Viewpoint.RIGHT)];
+  } else if (maxNumInt > 1) {
+    const viewpointPreferenceList: (Viewpoint | "any")[] = [
+      Viewpoint.LEFT,
+      Viewpoint.RIGHT,
+      Viewpoint.FRONT,
+      Viewpoint.BACK,
+      Viewpoint.UP,
+    ];
+
+    const numAny: number = maxNumInt - viewpointPreferenceList.length;
+    const anyArray: "any"[] = numAny > 0 ? _.fill(Array(numAny), "any") : [];
+
+    return _.concat(viewpointPreferenceList, anyArray)
+      .slice(0, maxNumInt)
+      .map((viewpoint: Viewpoint | "any"): AnnotationRow => {
+        return viewpoint === "any"
+          ? pullAnnotationRow("any")
+          : pullAnnotationRowPreference2Wise(viewpoint);
+      });
+  }
 };
 
 const getGroupedAnnotationsFromExcel = ({
@@ -154,7 +222,7 @@ const performFinalSave = async (submitData: SubmitData): Promise<Done> => {
     } catch (error) {
       errors[annotationsWithId["Name0.value"]] = {
         "Name0.value": annotationsWithId["Name0.value"],
-        annotationRows: annotationsWithId["annotationRows"].map((annotationRow) => {
+        annotationRows: annotationsWithId["annotationRows"].map((annotationRow: AnnotationRow) => {
           return {
             ...annotationRow,
             wildExErrorMessage: `Couldn't create folder: ${individualIdFolder}.`,
