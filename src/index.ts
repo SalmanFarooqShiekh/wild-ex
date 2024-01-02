@@ -20,9 +20,9 @@ const getWindow = () => {
     width: 750,
     minWidth: 750,
     maxWidth: 750,
-    height: 750,
-    minHeight: 750,
-    maxHeight: 750,
+    height: 800,
+    minHeight: 800,
+    maxHeight: 800,
     autoHideMenuBar: true,
     icon: nativeImage.createFromDataURL(icon),
     webPreferences: {
@@ -39,7 +39,7 @@ const getWindow = () => {
   });
 
   window.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-  // window.webContents.openDevTools({mode: 'undocked'});
+  window.webContents.openDevTools({ mode: "undocked" });
 
   return window;
 };

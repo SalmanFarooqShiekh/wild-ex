@@ -1,43 +1,35 @@
 import { app, dialog, ipcMain } from "electron";
-
 import { mainWindow } from "./index";
-import { performFinalSave } from "./utils";
-import FileFilter = Electron.FileFilter;
-import { Simulate } from "react-dom/test-utils";
-import submit = Simulate.submit;
+import {haltFinalSave, performFinalSave} from "./utils";
 
-ipcMain.on("file-dialog-open", (event, filters: FileFilter[], defaultPath: string) => {
-  dialog
-    .showOpenDialog(mainWindow, {
+ipcMain.handle(
+  "file-dialog-open",
+  async (e, filters: Electron.FileFilter[], defaultPath: string): Promise<string> => {
+    const result = await dialog.showOpenDialog(mainWindow, {
       properties: ["openFile"],
       filters: filters,
       defaultPath: defaultPath,
-    })
-    .then((result) => {
-      if (!result.canceled && result.filePaths.length > 0) {
-        event.sender.send("file-dialog-close", result.filePaths[0]);
-      }
     });
-});
 
-ipcMain.on("directory-dialog-open", (event, defaultPath: string) => {
-  dialog
-    .showOpenDialog(mainWindow, {
-      properties: ["openDirectory"],
-      defaultPath: defaultPath,
-    })
-    .then((result) => {
-      if (!result.canceled && result.filePaths.length > 0) {
-        event.sender.send("directory-dialog-close", result.filePaths[0]);
-      }
-    });
-});
-
-ipcMain.handle(
-  "handle-final-submit",
-  async (event, submitData: SubmitData) => await performFinalSave(submitData),
+    if (!result.canceled && result.filePaths.length > 0) {
+      return result.filePaths[0];
+    }
+  },
 );
 
-ipcMain.on("get-downloads-directory", (event, onDone: (downloadsDirectory: string) => void) => {
-  event.sender.send("downloads-directory-get", app.getPath("downloads"));
+ipcMain.handle("directory-dialog-open", async (e, defaultPath: string): Promise<string> => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openDirectory"],
+    defaultPath: defaultPath,
+  });
+
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0];
+  }
 });
+
+ipcMain.handle("get-downloads-directory", (e): string => app.getPath("downloads"));
+
+ipcMain.handle("halt-final-submit", (e) => haltFinalSave());
+
+ipcMain.handle("handle-final-submit", async (e, sd: SubmitData) => await performFinalSave(sd));

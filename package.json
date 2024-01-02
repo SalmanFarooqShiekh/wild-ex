@@ -1,6 +1,6 @@
 {
-  "name": "wild-ex",
-  "productName": "wild-ex",
+  "name": "WildEx",
+  "productName": "WildEx",
   "version": "1.0.0",
   "description": "Download Annotated Images from Wildbook",
   "main": ".webpack/main",

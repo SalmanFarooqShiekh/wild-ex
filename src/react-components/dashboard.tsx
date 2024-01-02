@@ -5,14 +5,13 @@ import { toast, ToastContainer } from "react-toastify";
 import { Button, Form, InputGroup, Modal } from "react-bootstrap";
 import * as Icon from "react-bootstrap-icons";
 import * as path from "path";
-import {size} from "lodash";
+import { size } from "lodash";
 
 const Dashboard = () => {
   const defaultNumAnnotationsPerId = "4";
 
   const [modalShow, setModalShow] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
-  const [downloadsDirectory, setDownloadsDirectory] = useState("");
   const [currentFormData, setCurrentFormData] = useState<
     SubmitData & { handleFinalSubmit: boolean }
   >({
@@ -24,15 +23,14 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    window.electron.getDownloadsDirectory((downloadsDirectory: string) => {
-      setDownloadsDirectory(downloadsDirectory);
-      setCurrentFormData((previous) => {
-        return {
-          ...previous,
-          downloadRoot: downloadsDirectory,
-        };
-      });
-    });
+    (async () => {
+      const downloadsDirectory: string = await window.electron.getDownloadsDirectory();
+
+      setCurrentFormData((previous) => ({
+        ...previous,
+        downloadRoot: downloadsDirectory,
+      }));
+    })();
   }, []);
 
   useEffect(() => {
@@ -44,12 +42,10 @@ const Dashboard = () => {
   const handleFinalSubmit = async () => {
     setShowSpinner(true);
 
-    setCurrentFormData((previous) => {
-      return {
-        ...previous,
-        handleFinalSubmit: false,
-      };
-    });
+    setCurrentFormData((previous) => ({
+      ...previous,
+      handleFinalSubmit: false,
+    }));
 
     const done: Done = await window.electron.handleFinalSubmit(currentFormData);
 
@@ -62,28 +58,28 @@ const Dashboard = () => {
     setShowSpinner(false);
   };
 
-  const openXlsxDialog = (): void => {
-    window.electron.openXlsxDialog((selectedFile: string) => {
-      setCurrentFormData((previous) => {
-        return {
-          ...previous,
-          inputXlsx: selectedFile,
-        };
-      });
-    }, currentFormData.inputXlsx || downloadsDirectory);
+  const openXlsxDialog = async (): Promise<void> => {
+    const selectedFile: string = await window.electron.openXlsxDialog(
+      currentFormData.inputXlsx || currentFormData.downloadRoot,
+    );
+
+    setCurrentFormData((previous) => ({
+      ...previous,
+      inputXlsx: selectedFile,
+    }));
   };
 
-  const openDirectoryDialog = (): void => {
+  const openDirectoryDialog = async (): Promise<void> => {
     if (formDataValid()) {
-      window.electron.openDirectoryDialog((selectedDirectory: string) => {
-        setCurrentFormData((previous) => {
-          return {
-            ...previous,
-            downloadRoot: selectedDirectory,
-            handleFinalSubmit: true,
-          };
-        });
-      }, currentFormData.downloadRoot);
+      const selectedDirectory: string = await window.electron.openDirectoryDialog(
+        currentFormData.downloadRoot,
+      );
+
+      setCurrentFormData((previous) => ({
+        ...previous,
+        downloadRoot: selectedDirectory,
+        handleFinalSubmit: true,
+      }));
     }
   };
 
@@ -99,12 +95,10 @@ const Dashboard = () => {
   };
 
   const unidentifiedEncountersOnChange = (e: ChangeEvent<HTMLButtonElement>): void => {
-    setCurrentFormData((previous) => {
-      return {
-        ...previous,
-        unidentifiedEncounters: e.target.value === "yes",
-      };
-    });
+    setCurrentFormData((previous) => ({
+      ...previous,
+      unidentifiedEncounters: e.target.value === "yes",
+    }));
   };
 
   return (
@@ -205,12 +199,10 @@ const Dashboard = () => {
                     }}
                     className={"me-4"}
                     onChange={(e) => {
-                      setCurrentFormData((previous) => {
-                        return {
-                          ...previous,
-                          numAnnotationsPerId: e.target.value,
-                        };
-                      });
+                      setCurrentFormData((previous) => ({
+                        ...previous,
+                        numAnnotationsPerId: e.target.value,
+                      }));
 
                       if (e.target.value === "all") {
                         setModalShow(true);
@@ -231,9 +223,12 @@ const Dashboard = () => {
                     <div style={{ width: "20rem", transform: "translate(4rem)" }}>
                       <h5 className={"text-danger fw-semibold mb-0"}>Warning</h5>
                       <div className={"text-danger"}>
-                        Consider your internet connection as well as the number of encounters and
-                        annotations in the source Export file before selecting the number of images
-                        per individual in download
+                        {/*Consider your internet connection as well as the number of encounters and*/}
+                        {/*annotations in the source Export file before selecting the number of images*/}
+                        {/*per individual in download*/}
+                        Consider your internet connection as well as the number of
+                        <i>unidentified </i> annotations in the source export file before selecting
+                        the number of annotations per <i>ID'd individual </i> in the download
                       </div>
                     </div>
 
@@ -322,12 +317,10 @@ const Dashboard = () => {
               variant="success"
               onClick={() => {
                 setModalShow(false);
-                setCurrentFormData((previous) => {
-                  return {
-                    ...previous,
-                    numAnnotationsPerId: defaultNumAnnotationsPerId,
-                  };
-                });
+                setCurrentFormData((previous) => ({
+                  ...previous,
+                  numAnnotationsPerId: defaultNumAnnotationsPerId,
+                }));
               }}
             >
               GO BACK
@@ -336,13 +329,19 @@ const Dashboard = () => {
         </Modal.Footer>
       </Modal>
 
-      <FullScreenSpinner show={showSpinner} />
+      <FullScreenSpinner
+        show={showSpinner}
+        onCancel={() => {
+          window.electron.haltFinalSubmit();
+          setShowSpinner(false);
+        }}
+      />
 
       <ToastContainer
         position={"top-right"}
         autoClose={5000}
         limit={6}
-        hideProgressBar={false}
+        hideProgressBar={true}
         newestOnTop={false}
         closeOnClick={true}
         rtl={false}

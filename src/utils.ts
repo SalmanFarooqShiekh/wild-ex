@@ -199,7 +199,14 @@ const getGroupedAnnotationsFromExcel = ({
     });
 };
 
+let haltFinalSaveFlag = false;
+
+const haltFinalSave = () => {
+  haltFinalSaveFlag = true;
+};
+
 const performFinalSave = async (submitData: SubmitData): Promise<Done> => {
+  haltFinalSaveFlag = false;
   const wrappingFolder = path.join(submitData.downloadRoot, path.basename(submitData.inputXlsx));
   try {
     fs.mkdirSync(wrappingFolder, { recursive: true });
@@ -234,19 +241,24 @@ const performFinalSave = async (submitData: SubmitData): Promise<Done> => {
 
     for (const annotationRow of annotationsWithId.annotationRows) {
       try {
-        await downloadCropAndSaveImage(
-          annotationRow["Encounter.mediaAsset0.imageUrl"],
-          annotationRow["Annotation0.bbox"].match(/\d+/g).map(Number),
-          path.join(
-            individualIdFolder,
-            `${annotationRow["Annotation0.Viewoint"]} - ${annotationRow["Encounter.mediaAsset0"]}`,
-          ),
-        );
+        if (haltFinalSaveFlag) {
+          throw new Error('Canceled by user')
+        } else {
+          await downloadCropAndSaveImage(
+            annotationRow["Encounter.mediaAsset0.imageUrl"],
+            annotationRow["Annotation0.bbox"].match(/\d+/g).map(Number),
+            path.join(
+              individualIdFolder,
+              `${annotationRow["Annotation0.Viewoint"]} - ${annotationRow["Encounter.mediaAsset0"]}`,
+            ),
+          );
+        }
       } catch (error) {
         const errorAnnotationRow: AnnotationRow = {
           ...annotationRow,
           wildExErrorMessage: error.message,
         };
+
         if (_.has(errors, annotationsWithId["Name0.value"])) {
           errors[annotationsWithId["Name0.value"]].annotationRows.push(errorAnnotationRow);
         } else {
@@ -283,5 +295,6 @@ export {
   downloadCropAndSaveImage,
   readExcelToJSON,
   getGroupedAnnotationsFromExcel,
+  haltFinalSave,
   performFinalSave,
 };

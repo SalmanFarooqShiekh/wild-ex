@@ -1,7 +1,13 @@
 import * as React from "react";
-import { Spinner } from "react-bootstrap";
+import { Button, Spinner } from "react-bootstrap";
 
-const FullScreenSpinner = ({ show }: { show: boolean }) => {
+const FullScreenSpinner = ({
+  show,
+  onCancel,
+}: {
+  show: boolean;
+  onCancel: () => any;
+}) => {
   return (
     <div
       style={{
@@ -27,11 +33,18 @@ const FullScreenSpinner = ({ show }: { show: boolean }) => {
           left: "0",
           width: "100%",
           height: "100%",
-          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          backgroundColor: "rgba(0, 0, 0, 0.9)",
         }}
-      />
-      <div style={{ zIndex: 1234567890 }}>
-        <Spinner animation={"border"} variant={"light"} role={"status"} />
+      ></div>
+
+      <div style={{ zIndex: 1234567890 }} className={"d-flex flex-column align-items-center"}>
+        <div className={"d-flex align-items-center"}>
+          <Spinner animation={"border"} variant={"light"} role={"status"} />
+          <span className={"ps-3 text-white"}>Downloading...</span>
+        </div>
+        <Button variant={"danger"} className={"mt-3"} onClick={onCancel}>
+          Cancel
+        </Button>
       </div>
     </div>
   );

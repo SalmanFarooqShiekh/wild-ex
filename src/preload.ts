@@ -1,37 +1,14 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("electron", {
-  openXlsxDialog: (onDone: (selectedFile: string) => void, defaultPath: string) => {
-    ipcRenderer.on("file-dialog-close", (event, selectedFile) => {
-      onDone(selectedFile);
-    });
-    ipcRenderer.send(
-      "file-dialog-open",
-      [{ name: "Microsoft Excel File", extensions: ["xlsx", "xls"] }],
-      defaultPath,
-    );
-  },
+  openXlsxDialog: (initial: string): Promise<string> =>
+    ipcRenderer.invoke("file-dialog-open", [{ name: "Microsoft Excel File", extensions: ["xlsx", "xls"] }], initial),
 
-  openDirectoryDialog: (onDone: (selectedDirectory: string) => void, defaultPath: string) => {
-    ipcRenderer.on("directory-dialog-close", (event, selectedDirectory) => {
-      onDone(selectedDirectory);
-    });
-    ipcRenderer.send("directory-dialog-open", defaultPath);
-  },
+  openDirectoryDialog: (initial: string): Promise<string> => ipcRenderer.invoke("directory-dialog-open", initial),
 
-  subscribeToErrors: (onError: (err: any) => void) => {
-    ipcRenderer.on("on-error", (event, err: any) => {
-      onError(err);
-    });
-  },
+  getDownloadsDirectory: (): Promise<string> => ipcRenderer.invoke("get-downloads-directory"),
 
-  getDownloadsDirectory: (onDone: (downloadsDirectory: string) => void) => {
-    ipcRenderer.on("downloads-directory-get", (event, downloadsDirectory: string) => {
-      onDone(downloadsDirectory);
-    });
-    ipcRenderer.send("get-downloads-directory");
-  },
+  haltFinalSubmit: (): Promise<void> => ipcRenderer.invoke("halt-final-submit"),
 
-  handleFinalSubmit: (submitData: SubmitData) =>
-    ipcRenderer.invoke("handle-final-submit", submitData),
+  handleFinalSubmit: (sd: SubmitData): Promise<Done> => ipcRenderer.invoke("handle-final-submit", sd),
 });
