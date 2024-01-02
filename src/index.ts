@@ -39,7 +39,7 @@ const getWindow = () => {
   });
 
   window.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-  window.webContents.openDevTools({ mode: "undocked" });
+  // window.webContents.openDevTools({ mode: "undocked" });
 
   return window;
 };
