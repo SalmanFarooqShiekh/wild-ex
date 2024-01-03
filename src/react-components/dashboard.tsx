@@ -227,8 +227,8 @@ const Dashboard = () => {
                         {/*annotations in the source Export file before selecting the number of images*/}
                         {/*per individual in download*/}
                         Consider your internet connection as well as the number of
-                        <i>unidentified </i> annotations in the source export file before selecting
-                        the number of annotations per <i>ID'd individual </i> in the download
+                        <i> unidentified </i> annotations in the source export file before selecting
+                        the number of annotations per <i> ID'd individual </i> in the download
                       </div>
                     </div>
 
