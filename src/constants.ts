@@ -26,3 +26,7 @@ export enum Viewpoint {
   UPLEFT = "upleft",
   UPRIGHT = "upright",
 }
+
+export const RESUME_INFORMATION = "Resume Information";
+
+export const RESUME_FILE_EXTENSION_PREFIX = "resume";

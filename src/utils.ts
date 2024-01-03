@@ -4,8 +4,9 @@ import * as fs from "fs";
 import * as path from "path";
 import _ from "lodash";
 
-import { Viewpoint } from "./constants";
-// import { AnnotationRow, AnnotationsWithId, Done, SubmitData } from "../declarations";
+import { RESUME_FILE_EXTENSION_PREFIX, RESUME_INFORMATION, Viewpoint } from "./constants";
+import { dialog } from "electron";
+import { mainWindow } from "./index";
 
 const UNIDENTIFIED_ANNOTATIONS_FOLDER = "Unidentified_annotations";
 
@@ -45,9 +46,9 @@ const downloadCropAndSaveImage = async (
   await cropAndSaveImage(buffer, cropRectangle, outputPath);
 };
 
-const readExcelToJSON = (filePath: string): any[] => {
+const readExcelToJSON = ({ filePath, sheetNum }: { filePath: string; sheetNum: number }): any[] => {
   const workbook: XLSX.WorkBook = XLSX.readFile(filePath);
-  return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+  return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[sheetNum]], { defval: "" });
 };
 
 const shortlistAnnotations = (
@@ -178,7 +179,7 @@ const getGroupedAnnotationsFromExcel = ({
   numAnnotationsPerId: string;
   unidentifiedEncounters: boolean;
 }): AnnotationsWithId[] => {
-  const ungroupedJSON = readExcelToJSON(inputXlsx).map((obj) => {
+  const ungroupedJSON = readExcelToJSON({ filePath: inputXlsx, sheetNum: 0 }).map((obj) => {
     return obj["Name0.value"].trim() === ""
       ? { ...obj, "Name0.value": UNIDENTIFIED_ANNOTATIONS_FOLDER }
       : obj;
@@ -205,9 +206,20 @@ const haltFinalSave = () => {
   haltFinalSaveFlag = true;
 };
 
-const performFinalSave = async (submitData: SubmitData): Promise<Done> => {
+const performFinalSave = async (submitData: SubmitData, originalXlsx: string): Promise<Done> => {
+  submitData = _.pick(submitData, [
+    "downloadRoot",
+    "inputXlsx",
+    "unidentifiedEncounters",
+    "numAnnotationsPerId",
+  ]);
   haltFinalSaveFlag = false;
-  const wrappingFolder = path.join(submitData.downloadRoot, path.basename(submitData.inputXlsx));
+
+  const filenameToBaseErrorFileAndFolderNameOn = path.basename(
+    originalXlsx || submitData.inputXlsx,
+  );
+
+  const wrappingFolder = path.join(submitData.downloadRoot, filenameToBaseErrorFileAndFolderNameOn);
   try {
     fs.mkdirSync(wrappingFolder, { recursive: true });
   } catch (error) {
@@ -224,26 +236,29 @@ const performFinalSave = async (submitData: SubmitData): Promise<Done> => {
   const errors: { [key: string]: AnnotationsWithId } = {}; // should be an array really but object property lookups are faster/more convenient than linear search
   for (const annotationsWithId of annotationsWithIds) {
     const individualIdFolder = path.join(wrappingFolder, annotationsWithId["Name0.value"]);
-    try {
-      fs.mkdirSync(individualIdFolder, { recursive: true });
-    } catch (error) {
-      errors[annotationsWithId["Name0.value"]] = {
-        "Name0.value": annotationsWithId["Name0.value"],
-        annotationRows: annotationsWithId["annotationRows"].map((annotationRow: AnnotationRow) => {
-          return {
-            ...annotationRow,
-            wildExErrorMessage: `Couldn't create folder: ${individualIdFolder}.`,
-          };
-        }),
-      };
-      continue;
+
+    if (!haltFinalSaveFlag) {
+      try {
+        fs.mkdirSync(individualIdFolder, { recursive: true });
+      } catch (error) {
+        errors[annotationsWithId["Name0.value"]] = {
+          "Name0.value": annotationsWithId["Name0.value"],
+          annotationRows: annotationsWithId["annotationRows"].map(
+            (annotationRow: AnnotationRow) => {
+              return {
+                ...annotationRow,
+                wildExErrorMessage: `Couldn't create folder: ${individualIdFolder}.`,
+              };
+            },
+          ),
+        };
+        continue;
+      }
     }
 
     for (const annotationRow of annotationsWithId.annotationRows) {
       try {
-        if (haltFinalSaveFlag) {
-          throw new Error('Canceled by user')
-        } else {
+        if (!haltFinalSaveFlag) {
           await downloadCropAndSaveImage(
             annotationRow["Encounter.mediaAsset0.imageUrl"],
             annotationRow["Annotation0.bbox"].match(/\d+/g).map(Number),
@@ -252,6 +267,8 @@ const performFinalSave = async (submitData: SubmitData): Promise<Done> => {
               `${annotationRow["Annotation0.Viewoint"]} - ${annotationRow["Encounter.mediaAsset0"]}`,
             ),
           );
+        } else {
+          throw new Error("Canceled by user");
         }
       } catch (error) {
         const errorAnnotationRow: AnnotationRow = {
@@ -273,21 +290,66 @@ const performFinalSave = async (submitData: SubmitData): Promise<Done> => {
 
   const errorsExcelJSON: AnnotationRow[] = _.flatMap(Object.values(errors), "annotationRows");
 
-  const errorsExcelFilePath = path.join(wrappingFolder, path.basename(submitData.inputXlsx));
+  const temp: path.ParsedPath = path.parse(filenameToBaseErrorFileAndFolderNameOn);
+  const errorsExcelFilePath = path.join(
+    wrappingFolder,
+    temp.name + "." + RESUME_FILE_EXTENSION_PREFIX + temp.ext,
+  );
   fs.existsSync(errorsExcelFilePath) && fs.unlinkSync(errorsExcelFilePath); // delete the file if it already exists
 
   if (errorsExcelJSON.length) {
-    const worksheet = XLSX.utils.json_to_sheet(errorsExcelJSON);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Search Results");
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.json_to_sheet(errorsExcelJSON),
+      "Search Results",
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.json_to_sheet([{...submitData, inputXlsx: originalXlsx || submitData.inputXlsx}]),
+      RESUME_INFORMATION,
+    );
     XLSX.writeFile(workbook, errorsExcelFilePath, { compression: true });
 
     return {
       success: false,
       message: `${errorsExcelJSON.length} annotations couldn't be downloaded, retry with fixed ${errorsExcelFilePath} to resume.`,
+      errorsExcelFilePath,
     };
   } else {
     return { success: true, message: "All annotations downloaded successfully." };
+  }
+};
+
+const showOpenDialog = async (openDialogParams: OpenDialogParams): Promise<string> => {
+  let result: Electron.OpenDialogReturnValue;
+
+  if (openDialogParams.type === "xls/xlsx") {
+    result = await dialog.showOpenDialog(mainWindow, {
+      properties: ["openFile"],
+      filters: [{ name: "Microsoft Excel File", extensions: ["xls", "xlsx"] }],
+      defaultPath: openDialogParams.defaultPath,
+    });
+  } else if (openDialogParams.type === "directory") {
+    result = await dialog.showOpenDialog(mainWindow, {
+      properties: ["openDirectory"],
+      defaultPath: openDialogParams.defaultPath,
+    });
+  }
+
+  if (result && !result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0];
+  } else {
+    return "";
+  }
+};
+
+const getParsedAndValidatedResumeData = (resumeFile: string): ParsedAndValidatedResumeData => {
+  try {
+    return _.first(readExcelToJSON({filePath: resumeFile, sheetNum: 1})) as unknown as SubmitData;
+  } catch (e) {
+    // TODO: implement better validation
+    return {errorMessage: "Invalid resume file"};
   }
 };
 
@@ -297,4 +359,6 @@ export {
   getGroupedAnnotationsFromExcel,
   haltFinalSave,
   performFinalSave,
+  showOpenDialog,
+  getParsedAndValidatedResumeData,
 };

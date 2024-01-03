@@ -1,14 +1,19 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("electron", {
-  openXlsxDialog: (initial: string): Promise<string> =>
-    ipcRenderer.invoke("file-dialog-open", [{ name: "Microsoft Excel File", extensions: ["xlsx", "xls"] }], initial),
+  openXlsxDialog: (defaultPath: string): Promise<string> =>
+    ipcRenderer.invoke("dialog-open", { defaultPath, type: "xls/xlsx" }),
 
-  openDirectoryDialog: (initial: string): Promise<string> => ipcRenderer.invoke("directory-dialog-open", initial),
+  openDirectoryDialog: (defaultPath: string): Promise<string> =>
+    ipcRenderer.invoke("dialog-open", { defaultPath, type: "directory" }),
 
   getDownloadsDirectory: (): Promise<string> => ipcRenderer.invoke("get-downloads-directory"),
 
   haltFinalSubmit: (): Promise<void> => ipcRenderer.invoke("halt-final-submit"),
 
-  handleFinalSubmit: (sd: SubmitData): Promise<Done> => ipcRenderer.invoke("handle-final-submit", sd),
+  handleFinalSubmit: (submitData: SubmitData, originalXlsx: string): Promise<Done> =>
+    ipcRenderer.invoke("handle-final-submit", submitData, originalXlsx),
+
+  getParsedAndValidatedResumeData: (resumeFile: string): Promise<ParsedAndValidatedResumeData> =>
+    ipcRenderer.invoke("get-parsed-and-validated-resume-data", resumeFile),
 });

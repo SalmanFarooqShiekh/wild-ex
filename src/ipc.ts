@@ -1,35 +1,27 @@
 import { app, dialog, ipcMain } from "electron";
-import { mainWindow } from "./index";
-import {haltFinalSave, performFinalSave} from "./utils";
+import {
+  getParsedAndValidatedResumeData,
+  haltFinalSave,
+  performFinalSave,
+  showOpenDialog,
+} from "./utils";
 
 ipcMain.handle(
-  "file-dialog-open",
-  async (e, filters: Electron.FileFilter[], defaultPath: string): Promise<string> => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ["openFile"],
-      filters: filters,
-      defaultPath: defaultPath,
-    });
-
-    if (!result.canceled && result.filePaths.length > 0) {
-      return result.filePaths[0];
-    }
-  },
+  "dialog-open",
+  async (e, openDialogParams: OpenDialogParams) => await showOpenDialog(openDialogParams),
 );
-
-ipcMain.handle("directory-dialog-open", async (e, defaultPath: string): Promise<string> => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ["openDirectory"],
-    defaultPath: defaultPath,
-  });
-
-  if (!result.canceled && result.filePaths.length > 0) {
-    return result.filePaths[0];
-  }
-});
 
 ipcMain.handle("get-downloads-directory", (e): string => app.getPath("downloads"));
 
 ipcMain.handle("halt-final-submit", (e) => haltFinalSave());
 
-ipcMain.handle("handle-final-submit", async (e, sd: SubmitData) => await performFinalSave(sd));
+ipcMain.handle(
+  "handle-final-submit",
+  async (e, submitData: SubmitData, originalXlsx: string) =>
+    await performFinalSave(submitData, originalXlsx),
+);
+
+ipcMain.handle(
+  "get-parsed-and-validated-resume-data",
+  (e, resumeFile: string): ParsedAndValidatedResumeData => getParsedAndValidatedResumeData(resumeFile),
+);

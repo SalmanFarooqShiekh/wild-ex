@@ -25,4 +25,14 @@ declare type SubmitData = {
 declare type Done = {
   success: boolean;
   message: string;
+  errorsExcelFilePath?: string;
 };
+
+declare type OpenDialogParams = {
+  defaultPath: string;
+  type: "directory" | "xls/xlsx";
+};
+
+declare type ErrorMessage = { errorMessage: string };
+
+declare type ParsedAndValidatedResumeData = SubmitData | ErrorMessage;

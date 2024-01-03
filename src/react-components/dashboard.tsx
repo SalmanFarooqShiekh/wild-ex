@@ -1,17 +1,22 @@
 import * as React from "react";
 import { ChangeEvent, useEffect, useState } from "react";
 import FullScreenSpinner from "./full-screen-spinner";
-import { toast, ToastContainer } from "react-toastify";
+import {toast, ToastContainer, ToastItem} from "react-toastify";
 import { Button, Form, InputGroup, Modal } from "react-bootstrap";
 import * as Icon from "react-bootstrap-icons";
 import * as path from "path";
-import { size } from "lodash";
+import { checkIfResumeFile } from "../common";
+import _ from "lodash";
 
 const Dashboard = () => {
   const defaultNumAnnotationsPerId = "4";
+  const resumeModeTooltipText = "Can't change when resuming";
 
   const [modalShow, setModalShow] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
+  const [resumeMode, setResumeMode] = useState(false);
+  const [originalXlsx, setOriginalXlsx] = useState("");
+  const [modalInfoText, setModalInfoText] = useState("");
   const [currentFormData, setCurrentFormData] = useState<
     SubmitData & { handleFinalSubmit: boolean }
   >({
@@ -40,6 +45,7 @@ const Dashboard = () => {
   }, [currentFormData.handleFinalSubmit]);
 
   const handleFinalSubmit = async () => {
+    setModalInfoText("Downloading...");
     setShowSpinner(true);
 
     setCurrentFormData((previous) => ({
@@ -47,39 +53,82 @@ const Dashboard = () => {
       handleFinalSubmit: false,
     }));
 
-    const done: Done = await window.electron.handleFinalSubmit(currentFormData);
-
-    if (done.success) {
-      toast.success(done.message);
-    } else {
-      toast.error(done.message);
-    }
+    const done: Done = await window.electron.handleFinalSubmit(currentFormData, originalXlsx);
 
     setShowSpinner(false);
+
+    if (done.success) {
+      const id = toast.success(done.message);
+      toast.onChange((payload: ToastItem) => {
+        if (payload.id === id && payload.status === "removed") {
+          window.location.reload()
+        }
+      });
+    } else {
+      done.errorsExcelFilePath && (await actOnSelectedXlsx(done.errorsExcelFilePath));
+      toast.error(done.message);
+    }
   };
 
   const openXlsxDialog = async (): Promise<void> => {
-    const selectedFile: string = await window.electron.openXlsxDialog(
+    const selectedXlsx: string = await window.electron.openXlsxDialog(
       currentFormData.inputXlsx || currentFormData.downloadRoot,
     );
 
-    setCurrentFormData((previous) => ({
-      ...previous,
-      inputXlsx: selectedFile,
-    }));
+    if (selectedXlsx) {
+      await actOnSelectedXlsx(selectedXlsx);
+    }
+  };
+
+  const actOnSelectedXlsx = async (selectedXlsx: string) => {
+    const isResumeFile = checkIfResumeFile(selectedXlsx);
+    setResumeMode(isResumeFile);
+
+    if (isResumeFile) {
+      const resumeData: ParsedAndValidatedResumeData =
+        await window.electron.getParsedAndValidatedResumeData(selectedXlsx);
+
+      if (_.has(resumeData, "errorMessage")) {
+        toast.error((resumeData as ErrorMessage).errorMessage);
+      } else {
+        setOriginalXlsx((resumeData as SubmitData).inputXlsx);
+        setCurrentFormData({
+          downloadRoot: (resumeData as SubmitData).downloadRoot,
+          inputXlsx: selectedXlsx,
+          unidentifiedEncounters: (resumeData as SubmitData).unidentifiedEncounters,
+          numAnnotationsPerId: (resumeData as SubmitData).numAnnotationsPerId,
+          handleFinalSubmit: false,
+        });
+      }
+    } else {
+      setCurrentFormData((previous) => ({
+        ...previous,
+        inputXlsx: selectedXlsx,
+      }));
+      setOriginalXlsx("");
+    }
   };
 
   const openDirectoryDialog = async (): Promise<void> => {
-    if (formDataValid()) {
-      const selectedDirectory: string = await window.electron.openDirectoryDialog(
-        currentFormData.downloadRoot,
-      );
-
+    if (resumeMode) {
       setCurrentFormData((previous) => ({
         ...previous,
-        downloadRoot: selectedDirectory,
         handleFinalSubmit: true,
       }));
+    } else {
+      if (formDataValid()) {
+        const selectedDirectory: string = await window.electron.openDirectoryDialog(
+          currentFormData.downloadRoot,
+        );
+
+        if (selectedDirectory) {
+          setCurrentFormData((previous) => ({
+            ...previous,
+            downloadRoot: selectedDirectory,
+            handleFinalSubmit: true,
+          }));
+        }
+      }
     }
   };
 
@@ -139,7 +188,10 @@ const Dashboard = () => {
               </li>
 
               <li>
-                <div className={"d-flex align-items-center"}>
+                <div
+                  className={"d-flex align-items-center"}
+                  title={resumeMode && resumeModeTooltipText}
+                >
                   <div>Include unidentified encounters in export? (Default is No)</div>
 
                   <div key={"inline-radio"} className="ms-4 mt-1">
@@ -151,6 +203,7 @@ const Dashboard = () => {
                       type={"radio"}
                       checked={!currentFormData.unidentifiedEncounters}
                       onChange={unidentifiedEncountersOnChange}
+                      disabled={resumeMode}
                     />
                     <Form.Check
                       inline
@@ -160,6 +213,7 @@ const Dashboard = () => {
                       type={"radio"}
                       checked={currentFormData.unidentifiedEncounters}
                       onChange={unidentifiedEncountersOnChange}
+                      disabled={resumeMode}
                     />
                   </div>
                 </div>
@@ -208,6 +262,8 @@ const Dashboard = () => {
                         setModalShow(true);
                       }
                     }}
+                    disabled={resumeMode}
+                    title={resumeMode && resumeModeTooltipText}
                   >
                     {["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "All"].map((i) => (
                       <option
@@ -247,7 +303,7 @@ const Dashboard = () => {
                         }
                       }}
                     >
-                      Download Annotations
+                      {resumeMode ? "Resume Download" : "Download Annotations"}
                     </Button>
                   </div>
                 </div>
@@ -306,7 +362,7 @@ const Dashboard = () => {
                 openDirectoryDialog();
               }}
             >
-              Download ALL annotations
+              {resumeMode ? "Resume downloading ALL annotations" : "Download ALL annotations"}
             </Button>
 
             <Button
@@ -317,10 +373,13 @@ const Dashboard = () => {
               variant="success"
               onClick={() => {
                 setModalShow(false);
-                setCurrentFormData((previous) => ({
-                  ...previous,
-                  numAnnotationsPerId: defaultNumAnnotationsPerId,
-                }));
+
+                if (!resumeMode) {
+                  setCurrentFormData((previous) => ({
+                    ...previous,
+                    numAnnotationsPerId: defaultNumAnnotationsPerId,
+                  }));
+                }
               }}
             >
               GO BACK
@@ -333,8 +392,10 @@ const Dashboard = () => {
         show={showSpinner}
         onCancel={() => {
           window.electron.haltFinalSubmit();
-          setShowSpinner(false);
+          setModalInfoText("Canceling...");
+          // setShowSpinner(false);
         }}
+        modalInfoText={modalInfoText}
       />
 
       <ToastContainer

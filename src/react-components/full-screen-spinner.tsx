@@ -1,13 +1,8 @@
 import * as React from "react";
 import { Button, Spinner } from "react-bootstrap";
+import { useState } from "react";
 
-const FullScreenSpinner = ({
-  show,
-  onCancel,
-}: {
-  show: boolean;
-  onCancel: () => any;
-}) => {
+const FullScreenSpinner = ({ show, onCancel, modalInfoText }: { show: boolean; onCancel: () => any; modalInfoText: string }) => {
   return (
     <div
       style={{
@@ -40,7 +35,7 @@ const FullScreenSpinner = ({
       <div style={{ zIndex: 1234567890 }} className={"d-flex flex-column align-items-center"}>
         <div className={"d-flex align-items-center"}>
           <Spinner animation={"border"} variant={"light"} role={"status"} />
-          <span className={"ps-3 text-white"}>Downloading...</span>
+          <span className={"ps-3 text-white"}>{modalInfoText}</span>
         </div>
         <Button variant={"danger"} className={"mt-3"} onClick={onCancel}>
           Cancel
