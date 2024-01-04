@@ -2,7 +2,7 @@ import sharp from "sharp";
 import XLSX from "xlsx";
 import * as fs from "fs";
 import * as path from "path";
-import _ from "lodash";
+import _, {wrap} from "lodash";
 
 import { RESUME_FILE_EXTENSION_PREFIX, RESUME_INFORMATION, Viewpoint } from "./constants";
 import { dialog } from "electron";
@@ -219,7 +219,12 @@ const performFinalSave = async (submitData: SubmitData, originalXlsx: string): P
     originalXlsx || submitData.inputXlsx,
   );
 
+  console.log({filenameToBaseErrorFileAndFolderNameOn})
+
   const wrappingFolder = path.join(submitData.downloadRoot, filenameToBaseErrorFileAndFolderNameOn);
+
+  console.log({wrappingFolder})
+
   try {
     fs.mkdirSync(wrappingFolder, { recursive: true });
   } catch (error) {
@@ -236,6 +241,8 @@ const performFinalSave = async (submitData: SubmitData, originalXlsx: string): P
   const errors: { [key: string]: AnnotationsWithId } = {}; // should be an array really but object property lookups are faster/more convenient than linear search
   for (const annotationsWithId of annotationsWithIds) {
     const individualIdFolder = path.join(wrappingFolder, annotationsWithId["Name0.value"]);
+
+    console.log({individualIdFolder})
 
     if (!haltFinalSaveFlag) {
       try {
