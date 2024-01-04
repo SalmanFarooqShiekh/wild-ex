@@ -313,7 +313,7 @@ const performFinalSave = async (submitData: SubmitData, originalXlsx: string): P
 
     return {
       success: false,
-      message: `${errorsExcelJSON.length} annotations couldn't be downloaded, retry with fixed ${errorsExcelFilePath} to resume.`,
+      message: `${errorsExcelJSON.length} annotations couldn't be downloaded, retry with ${errorsExcelFilePath} after fixing it to resume.`,
       errorsExcelFilePath,
     };
   } else {
