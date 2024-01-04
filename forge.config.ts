@@ -14,7 +14,7 @@ const icon_path = join(__dirname, "src", "assets", "icon");
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    asar: false,
     icon: icon_path,
   },
   rebuildConfig: {},
