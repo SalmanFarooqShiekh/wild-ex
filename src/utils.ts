@@ -207,6 +207,8 @@ const haltFinalSave = () => {
 };
 
 const performFinalSave = async (submitData: SubmitData, originalXlsx: string): Promise<Done> => {
+  // if originalXlsx is truthy, then assume resume-mode
+
   submitData = _.pick(submitData, [
     "downloadRoot",
     "inputXlsx",
