@@ -65,7 +65,7 @@ const Dashboard = () => {
         }
       });
     } else {
-      done.errorsExcelFilePath && (await actOnSelectedXlsx(done.errorsExcelFilePath));
+      done.errorsExcelFilePath && (await actOnXlsx(done.errorsExcelFilePath));
       toast.error(done.message);
     }
   };
@@ -76,17 +76,17 @@ const Dashboard = () => {
     );
 
     if (selectedXlsx) {
-      await actOnSelectedXlsx(selectedXlsx);
+      await actOnXlsx(selectedXlsx);
     }
   };
 
-  const actOnSelectedXlsx = async (selectedXlsx: string) => {
-    const isResumeFile = checkIfResumeFile(selectedXlsx);
+  const actOnXlsx = async (xlsxToActOn: string) => {
+    const isResumeFile = checkIfResumeFile(xlsxToActOn);
     setResumeMode(isResumeFile);
 
     if (isResumeFile) {
       const resumeData: ParsedAndValidatedResumeData =
-        await window.electron.getParsedAndValidatedResumeData(selectedXlsx);
+        await window.electron.getParsedAndValidatedResumeData(xlsxToActOn);
 
       if (_.has(resumeData, "errorMessage")) {
         toast.error((resumeData as ErrorMessage).errorMessage);
@@ -94,7 +94,7 @@ const Dashboard = () => {
         setOriginalXlsx((resumeData as SubmitData).inputXlsx);
         setCurrentFormData({
           downloadRoot: (resumeData as SubmitData).downloadRoot,
-          inputXlsx: selectedXlsx,
+          inputXlsx: xlsxToActOn,
           unidentifiedEncounters: (resumeData as SubmitData).unidentifiedEncounters,
           numAnnotationsPerId: (resumeData as SubmitData).numAnnotationsPerId,
           handleFinalSubmit: false,
@@ -103,7 +103,7 @@ const Dashboard = () => {
     } else {
       setCurrentFormData((previous) => ({
         ...previous,
-        inputXlsx: selectedXlsx,
+        inputXlsx: xlsxToActOn,
       }));
       setOriginalXlsx("");
     }
